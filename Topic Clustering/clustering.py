@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from typing import Iterable
 
-import torch
 import numpy as np
 import sentence_transformers as st
 
@@ -12,7 +11,7 @@ class Topic():
     name: str
     keywords: list[str]
     doc_indices: list[int] | None = None
-    embedding: torch.Tensor | None = None
+    embedding: np.ndarray | None = None
 
 
 def make_embeddings(model: st.SentenceTransformer, documents: Iterable[str]) -> np.ndarray:
