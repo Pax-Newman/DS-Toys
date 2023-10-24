@@ -13,6 +13,8 @@ class Topic():
     doc_indices: list[int] | None = None
     embedding: np.ndarray | None = None
 
+def cos_sim(a: np.ndarray, b: np.ndarray) -> float:
+    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
 
 def make_embeddings(model: st.SentenceTransformer, documents: Iterable[str]) -> np.ndarray:
     if not isinstance(documents, list):
@@ -57,10 +59,27 @@ def make_topic_prototype(
 
     return topic
 
-def topic_distance():
-    ...
 
-def nearest_neighbor():
+def by_topic_distance(
+    topics: list[Topic],
+    doc_embeddings: np.ndarray,
+    ) -> list[str]:
+
+    # PERF: This could be sped up by using a KDTree or vectorized operations
+    def classify(doc: np.ndarray) -> str:
+        return max(
+            topics,
+            key=lambda t: cos_sim(doc, t.embedding),
+        ).name
+    
+    doc_classes = [
+        classify(doc)
+        for doc in doc_embeddings
+    ]
+
+    return doc_classes
+
+def by_nearest_neighbor():
     ...
 
 
