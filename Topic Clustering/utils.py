@@ -1,4 +1,4 @@
-from clustering import Topic, make_topic_prototype
+from clustering import Topic
 
 
 def validate_topic_arg(topics: list[str]) -> None:
@@ -37,27 +37,13 @@ def validate_topic_objs(topics: list[Topic]):
         quit()
 
 
-def parse_topic_arg(
-    model, topics, doc_embeddings, min_docs, max_docs, sim
-) -> list[Topic]:
+def parse_topic_arg(topics) -> list[Topic]:
     topics = [
         Topic(
-            topic_str.split(":")[0],
-            topic_str.split(":")[1].split(","),
+            name=topic_str.split(":")[0],
+            keywords=topic_str.split(":")[1].split(","),
         )
         for topic_str in topics
-    ]
-
-    topics = [
-        make_topic_prototype(
-            model,
-            topic,
-            doc_embeddings,
-            min_docs,
-            max_docs,
-            sim,
-        )
-        for topic in topics
     ]
 
     return topics

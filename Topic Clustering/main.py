@@ -5,7 +5,7 @@ import typer
 import pandas as pd
 import sentence_transformers as st
 
-from clustering import make_embeddings, by_topic_distance
+from clustering import make_embeddings, by_topic_distance, make_topic_prototype
 from utils import parse_topic_arg, validate_topic_arg, validate_topic_objs
 
 
@@ -45,14 +45,19 @@ def topic_distance(
     doc_embeddings = make_embeddings(st_model, documents)
 
     # Build topic vectors
-    topics = parse_topic_arg(
-        st_model,
-        topic,
-        doc_embeddings,
-        min_docs,
-        max_docs,
-        sim,
-    )
+    topics = parse_topic_arg(topic)
+
+    topics = [
+        make_topic_prototype(
+            st_model,
+            t,
+            doc_embeddings,
+            min_docs,
+            max_docs,
+            sim,
+        )
+        for t in topics
+    ]
 
     validate_topic_objs(topics)
 
