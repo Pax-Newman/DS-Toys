@@ -1,13 +1,12 @@
-from typing import Annotated, Tuple
+from typing import Annotated
 from pathlib import Path
 
 import typer
 import pandas as pd
 import sentence_transformers as st
-import numpy as np
 
 from clustering import make_embeddings, by_topic_distance
-from utils import parse_topic_arg
+from utils import parse_topic_arg, validate_topic_arg, validate_topic_objs
 
 
 app = typer.Typer()
@@ -26,6 +25,9 @@ def topic_distance(
         max_docs: Annotated[int, typer.Option(help="Maximum number of documents to create topic embedding")] = 20,
         sim: Annotated[float, typer.Option(help="Minimum similarity threshold for adding a document to a topic embedding")] = 0.5,
         ):
+
+    validate_topic_arg(topic)
+
     # Load model
     st_model = st.SentenceTransformer(model)
 
@@ -42,6 +44,8 @@ def topic_distance(
         max_docs,
         sim,
     )
+
+    validate_topic_objs(topics)
 
     # Classify remaining documents (by distance to root topic vectors)
     classes = by_topic_distance(
