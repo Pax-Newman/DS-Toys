@@ -26,7 +26,6 @@ def topic_distance(
         max_docs: Annotated[int, typer.Option(help="Maximum number of documents to create topic embedding")] = 20,
         sim: Annotated[float, typer.Option(help="Minimum similarity threshold for adding a document to a topic embedding")] = 0.5,
         ):
-    print("Nearest")
     # Load model
     st_model = st.SentenceTransformer(model)
 
