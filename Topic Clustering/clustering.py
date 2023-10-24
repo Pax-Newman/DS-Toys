@@ -6,17 +6,22 @@ import sentence_transformers as st
 
 import pandas as pd
 
+
 @dataclass
-class Topic():
+class Topic:
     name: str
     keywords: list[str]
     doc_indices: list[int] | None = None
     embedding: np.ndarray | None = None
 
+
 def cos_sim(a: np.ndarray, b: np.ndarray) -> float:
     return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
 
-def make_embeddings(model: st.SentenceTransformer, documents: Iterable[str]) -> np.ndarray:
+
+def make_embeddings(
+    model: st.SentenceTransformer, documents: Iterable[str]
+) -> np.ndarray:
     if not isinstance(documents, list):
         documents = list(documents)
 
@@ -24,14 +29,15 @@ def make_embeddings(model: st.SentenceTransformer, documents: Iterable[str]) -> 
 
     return embeddings
 
+
 def make_topic_prototype(
-        model: st.SentenceTransformer,
-        topic: Topic,
-        doc_embeddings: np.ndarray,
-        min_docs: int = 5,
-        max_docs: int = 20,
-        sim_thresh: float = 0.5,
-        ) -> Topic:
+    model: st.SentenceTransformer,
+    topic: Topic,
+    doc_embeddings: np.ndarray,
+    min_docs: int = 5,
+    max_docs: int = 20,
+    sim_thresh: float = 0.5,
+) -> Topic:
     # Generate keyword embeddings
     kw_embeddings = make_embeddings(model, topic.keywords)
 
@@ -49,7 +55,9 @@ def make_topic_prototype(
         topic.doc_indices = list(candidate_doc_indices[:min_docs])
     else:
         topic.doc_indices = []
-        for sim, ind in zip(doc_similarities[candidate_doc_indices], candidate_doc_indices):
+        for sim, ind in zip(
+            doc_similarities[candidate_doc_indices], candidate_doc_indices
+        ):
             if sim < sim_thresh:
                 break
             topic.doc_indices.append(ind)
@@ -63,23 +71,18 @@ def make_topic_prototype(
 def by_topic_distance(
     topics: list[Topic],
     doc_embeddings: np.ndarray,
-    ) -> list[str]:
-
+) -> list[str]:
     # PERF: This could be sped up by using a KDTree or vectorized operations
     def classify(doc: np.ndarray) -> str:
         return max(
             topics,
             key=lambda t: cos_sim(doc, t.embedding),
         ).name
-    
-    doc_classes = [
-        classify(doc)
-        for doc in doc_embeddings
-    ]
+
+    doc_classes = [classify(doc) for doc in doc_embeddings]
 
     return doc_classes
 
+
 def by_nearest_neighbor():
     ...
-
-

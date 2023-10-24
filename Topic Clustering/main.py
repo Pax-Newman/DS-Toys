@@ -14,18 +14,27 @@ app = typer.Typer()
 
 # --- Subcommands ---
 
+
 @app.command()
 def topic_distance(
-        data: Annotated[Path, typer.Argument(help="Path to data", exists=True)],
-        column: Annotated[str, typer.Argument(help="Column name for text data")],
-        model: Annotated[str, typer.Argument(help="Sentence Transformer model name")],
-        outfile: Annotated[Path, typer.Argument(help="Path to output file")],
-        topic: Annotated[list[str], typer.Option(help="List of topic names and keywords")],
-        min_docs: Annotated[int, typer.Option(help="Minimum number of documents to create topic embedding")] = 5,
-        max_docs: Annotated[int, typer.Option(help="Maximum number of documents to create topic embedding")] = 20,
-        sim: Annotated[float, typer.Option(help="Minimum similarity threshold for adding a document to a topic embedding")] = 0.5,
-        ):
-
+    data: Annotated[Path, typer.Argument(help="Path to data", exists=True)],
+    column: Annotated[str, typer.Argument(help="Column name for text data")],
+    model: Annotated[str, typer.Argument(help="Sentence Transformer model name")],
+    outfile: Annotated[Path, typer.Argument(help="Path to output file")],
+    topic: Annotated[list[str], typer.Option(help="List of topic names and keywords")],
+    min_docs: Annotated[
+        int, typer.Option(help="Minimum number of documents to create topic embedding")
+    ] = 5,
+    max_docs: Annotated[
+        int, typer.Option(help="Maximum number of documents to create topic embedding")
+    ] = 20,
+    sim: Annotated[
+        float,
+        typer.Option(
+            help="Minimum similarity threshold for adding a document to a topic embedding"
+        ),
+    ] = 0.5,
+):
     validate_topic_arg(topic)
 
     # Load model
@@ -48,10 +57,7 @@ def topic_distance(
     validate_topic_objs(topics)
 
     # Classify remaining documents (by distance to root topic vectors)
-    classes = by_topic_distance(
-        topics,
-        doc_embeddings
-    )
+    classes = by_topic_distance(topics, doc_embeddings)
 
     documents["class"] = classes
 
@@ -68,6 +74,7 @@ def nearest_neighbor():
     # Build topic vectors
 
     # Classify remaining documents (by distance to root topic vectors)
+
 
 # --- Run App ---
 

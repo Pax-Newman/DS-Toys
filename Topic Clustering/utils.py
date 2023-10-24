@@ -1,5 +1,6 @@
 from clustering import Topic, make_topic_prototype
 
+
 def validate_topic_arg(topics: list[str]) -> None:
     """
     Validate topic argument. Quits if invalid.
@@ -19,6 +20,7 @@ def validate_topic_arg(topics: list[str]) -> None:
         print("Topics must be specified as '--topic topic_name:keyword1,keyword2,...'")
         quit()
 
+
 def validate_topic_objs(topics: list[Topic]):
     """
     Validate topic objects. Quits if invalid.
@@ -34,7 +36,10 @@ def validate_topic_objs(topics: list[Topic]):
         print("Topics must have unique names.")
         quit()
 
-def parse_topic_arg(model, topics, doc_embeddings, min_docs, max_docs, sim) -> list[Topic]:
+
+def parse_topic_arg(
+    model, topics, doc_embeddings, min_docs, max_docs, sim
+) -> list[Topic]:
     topics = [
         Topic(
             topic_str.split(":")[0],
@@ -56,4 +61,3 @@ def parse_topic_arg(model, topics, doc_embeddings, min_docs, max_docs, sim) -> l
     ]
 
     return topics
-
