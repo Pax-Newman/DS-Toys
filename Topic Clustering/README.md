@@ -11,6 +11,10 @@ An unsupervised clustering algorithm for clustering text documents by pre-define
 python main.py topic_distance data/mydocs.csv 'MyColumnName' 'all-MiniLM-L6-v2' classified_docs.csv
                 Clustering     Input data       Target col     sentence trans-    output filepath
                   method        filepath          in csv        former model
+
+cont.
+--topic basketball:Basketball,NBA,LeBron --topic soccer:Soccer,Messi,FIFA
+        topic name:keywords.....         add as many topics and keywords as you want!
 ```
 
 ## Credits
