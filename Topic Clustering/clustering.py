@@ -4,8 +4,6 @@ from typing import Iterable
 import numpy as np
 import sentence_transformers as st
 
-import pandas as pd
-
 
 @dataclass
 class Topic:
