@@ -64,9 +64,9 @@ def topic_distance(
     # Classify remaining documents (by distance to root topic vectors)
     classes = by_topic_distance(topics, doc_embeddings)
 
-    documents["class"] = classes
+    output = pd.DataFrame({column: documents, "label": classes})
 
-    documents.to_csv(outfile, index=False)
+    output.to_csv(outfile, index=False)
 
 
 # --- Run App ---
