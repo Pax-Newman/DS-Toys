@@ -7,7 +7,7 @@ An unsupervised clustering algorithm for clustering text documents by pre-define
 ## Installation
 
 ```bash
-python -m pip install 'git+https://github.com/Pax-Newman/DS-Toys.git#egg=Topic%20Clustering&subdirectory=Topic%20Clustering'
+python -m pip install 'git+https://github.com/Pax-Newman/DS-Toys.git#egg=topic_clustering&subdirectory=topic_clustering'
 ```
 
 
