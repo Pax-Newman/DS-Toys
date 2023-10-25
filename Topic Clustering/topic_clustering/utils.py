@@ -1,4 +1,4 @@
-from clustering import Topic
+from .clustering import Topic
 
 
 def validate_topic_arg(topics: list[str]) -> None:

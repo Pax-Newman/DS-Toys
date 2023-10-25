@@ -5,8 +5,8 @@ import typer
 import pandas as pd
 import sentence_transformers as st
 
-from clustering import make_embeddings, by_topic_distance, make_topic_prototype
-from utils import parse_topic_arg, validate_topic_arg, validate_topic_objs
+from .clustering import make_embeddings, by_topic_distance, make_topic_prototype
+from .utils import parse_topic_arg, validate_topic_arg, validate_topic_objs
 
 
 app = typer.Typer()
