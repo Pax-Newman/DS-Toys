@@ -4,15 +4,19 @@ An unsupervised clustering algorithm for clustering text documents by pre-define
 
 ![](https://raw.githubusercontent.com/sebischair/Lbl2Vec/main/images/Document_assignment_example.png)
 
+## Installation
+
+`python -m pip install 'git+https://github.com/Pax-Newman/DS-Toys.git#egg=Topic%20Clustering&subdirectory=Topic%20Clustering'`
+
 
 ## Usage
 
 ```
-python main.py topic_distance data/mydocs.csv 'MyColumnName' 'all-MiniLM-L6-v2' classified_docs.csv
-                Clustering     Input data       Target col     sentence trans-    output filepath
-                  method        filepath          in csv        former model
+topic_cluster topic_distance data/mydocs.csv 'MyColumnName' 'all-MiniLM-L6-v2' classified_docs.csv
+  root cmd      Clustering     Input data      Target col     sentence trans-    output filepath
+                  method        filepath         in csv        former model
 
-cont.
+args cont.
 --topic basketball:Basketball,NBA,LeBron --topic soccer:Soccer,Messi,FIFA
         topic name:keywords.....         add as many topics and keywords as you want!
 ```
