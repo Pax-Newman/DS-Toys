@@ -69,18 +69,6 @@ def topic_distance(
     documents.to_csv(outfile, index=False)
 
 
-@app.command()
-def nearest_neighbor():
-    print("Nearest Neighbor")
-
-    # Load data
-    # Load model
-
-    # Build topic vectors
-
-    # Classify remaining documents (by distance to root topic vectors)
-
-
 # --- Run App ---
 
 if __name__ == "__main__":
