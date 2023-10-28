@@ -2,6 +2,7 @@ from pathlib import Path
 import os
 
 import typer
+import click
 from questionary import select
 
 from game import Game
@@ -31,8 +32,8 @@ def main(
     # Initialize game
     game = Game(tree, num_choices)
 
-    # Start new game
     while True:
+        # Start new game
         game.new_game()
 
         # Game loop
@@ -62,7 +63,7 @@ Which word vector would you like to travel to next?
         if replay == "No":
             break
 
-        os.system("cls" if os.name == "nt" else "clear")
+        click.clear()
 
 
 if __name__ == "__main__":
