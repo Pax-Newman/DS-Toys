@@ -13,7 +13,7 @@ app = typer.Typer()
 
 @app.command()
 def main(
-    wordbank: Path = typer.Argument(help="Path to wordbank file."),
+    wordbank: Path = typer.Option("wordlist.txt", help="Path to wordbank file."),
     num_choices: int = typer.Option(
         default=6, help="Number of choices to give each round."
     ),
@@ -32,6 +32,7 @@ def main(
     # Initialize game
     game = Game(tree, num_choices)
 
+    click.clear()
     while True:
         # Start new game
         game.new_game()
@@ -51,6 +52,8 @@ Which word vector would you like to travel to next?
             win = game.choose(choice_idx)
             if win:
                 break
+
+            click.clear()
 
         print(
             f"Congratulations! You reached {game.target_word} in {len(game.word_path)} steps."
