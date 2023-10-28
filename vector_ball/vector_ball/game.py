@@ -41,6 +41,8 @@ class Game:
 
         self.current_word = self.start_word
 
+        self.word_path = [new_start]
+
         # Fetch options for the current word
         self.options = self.tree.query(self.current_word, k=self.num_choices)
 
@@ -62,7 +64,6 @@ class Game:
         options = self.tree.query(self.current_word, k=self.num_choices * 2)
 
         # Ensure the new options don't include the previous choice
-        # NOTE: Might be better to not include any in the word path
         self.options = [
             option for option in options if option.word not in self.word_path
         ][:self.num_choices]
