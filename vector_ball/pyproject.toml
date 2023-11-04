@@ -16,6 +16,7 @@ dependencies = [
     "typer",
     "sentence-transformers",
     "questionary",
+    "pycozo[embedded, pandas]"
 ]
 
 [project.urls]

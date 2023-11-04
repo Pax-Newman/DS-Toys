@@ -73,4 +73,3 @@ def from_txt(txt_path: str, model: str) -> WordBank:
     wb.put(words)
 
     return wb
-
