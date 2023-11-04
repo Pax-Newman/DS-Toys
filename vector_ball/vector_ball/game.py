@@ -1,4 +1,4 @@
-import word_tree
+from . import word_tree
 from random import choice
 
 
@@ -11,6 +11,8 @@ class Game:
         self.start_word = ""
         self.current_word = ""
         self.target_word = ""
+        self.target_embedding = None
+        self.dist_to_target = 0.0
         self.total_distance = 0.0
         self.word_path = []
         self.options = []
@@ -66,7 +68,7 @@ class Game:
         # Ensure the new options don't include the previous choice
         self.options = [
             option for option in options if option.word not in self.word_path
-        ][:self.num_choices]
+        ][: self.num_choices]
 
         self.current_word = choice.word
 

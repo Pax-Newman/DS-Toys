@@ -1,0 +1,25 @@
+[project]
+name = "vector_ball"
+version = "1.0.0"
+authors = [
+    { name = "Pax Newman", email = "pax.newman@gmail.com" },
+]
+description = "A wikiball-like game about traversing through word-vector space"
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "typer",
+    "sentence-transformers",
+    "questionary",
+]
+
+[project.urls]
+"homepage" = "https://github.com/Pax-Newman/DS-Toys"
+
+[project.scripts]
+"vectorball" = "vector_ball.main:app"

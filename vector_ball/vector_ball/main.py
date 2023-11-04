@@ -1,12 +1,11 @@
 from pathlib import Path
-import os
 
 import typer
 import click
 from questionary import select
 
-from game import Game
-from word_tree import from_txt, read_pickle
+from .game import Game
+from .word_tree import from_txt, read_pickle
 
 app = typer.Typer()
 
@@ -32,7 +31,7 @@ def main(
     # Initialize game
     game = Game(tree, num_choices)
 
-    click.clear()
+    # click.clear()
     while True:
         # Start new game
         game.new_game()
@@ -68,6 +67,3 @@ Which word vector would you like to travel to next?
 
         click.clear()
 
-
-if __name__ == "__main__":
-    app()
