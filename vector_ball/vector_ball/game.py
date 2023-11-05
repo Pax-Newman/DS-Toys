@@ -1,17 +1,15 @@
-from . import word_tree
-from random import choice
+from . import wordbank
 
 
 class Game:
-    def __init__(self, tree: word_tree.WordTree, num_choices: int) -> None:
-        self.tree = tree
+    def __init__(self, wordbank: wordbank.WordBank, num_choices: int) -> None:
+        self.wordbank = wordbank
         self.num_choices = num_choices
 
         # Game State
         self.start_word = ""
         self.current_word = ""
         self.target_word = ""
-        self.target_embedding = None
         self.dist_to_target = 0.0
         self.total_distance = 0.0
         self.word_path = []
@@ -25,13 +23,13 @@ class Game:
         self.options = []
 
         # Randomly set new start and target
-        while (new_start := choice(self.tree.words)) in [
+        while (new_start := self.wordbank.get_random()) in [
             self.start_word,
             self.target_word,
         ]:
             pass
 
-        while (new_target := choice(self.tree.words)) in [
+        while (new_target := self.wordbank.get_random()) in [
             new_start,
             self.start_word,
             self.target_word,
@@ -46,7 +44,7 @@ class Game:
         self.word_path = [new_start]
 
         # Fetch options for the current word
-        self.options = self.tree.query(self.current_word, k=self.num_choices)
+        self.options = self.wordbank.query(self.current_word, k=self.num_choices)
 
     def choose(self, option_idx: int) -> bool:
         """
@@ -63,7 +61,7 @@ class Game:
             return True
 
         # Fetch new options
-        options = self.tree.query(self.current_word, k=self.num_choices * 2)
+        options = self.wordbank.query(self.current_word, k=self.num_choices * 2)
 
         # Ensure the new options don't include the previous choice
         self.options = [

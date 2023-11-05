@@ -5,7 +5,7 @@ import click
 from questionary import select
 
 from .game import Game
-from .word_tree import from_txt, read_pickle
+from .wordbank import WordBank, from_txt
 
 app = typer.Typer()
 
@@ -22,14 +22,16 @@ def main(
 ):
     # Load words
     if wordbank.suffix == ".txt":
-        tree = from_txt(str(wordbank.absolute()), model)
-    elif wordbank.suffix == ".pickle":
-        tree = read_pickle(str(wordbank.absolute()))
+        bank = from_txt(str(wordbank.absolute()), model)
+    elif wordbank.suffix == ".db":
+        bank = WordBank(str(wordbank.absolute()), model)
     else:
-        raise ValueError("Wordbank must be a .txt or .pickle file.")
+        raise ValueError("Wordbank must be a .txt or .db file.")
+
 
     # Initialize game
-    game = Game(tree, num_choices)
+    game = Game(bank, num_choices)
+
 
     # click.clear()
     while True:
@@ -42,6 +44,7 @@ def main(
 Start: {game.start_word} - Current: {game.current_word} - Target: {game.target_word}
 Which word vector would you like to travel to next?
 """
+            print(game.word_path)
 
             options = [f"{option.word} - {option.distance}" for option in game.options]
             choice = select(view_str, options).ask()

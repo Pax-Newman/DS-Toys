@@ -1,8 +1,15 @@
+from dataclasses import dataclass
 import pandas as pd
 import sentence_transformers as st
 from pycozo.client import Client
 
 from os import path
+
+
+@dataclass
+class Result:
+    word: str
+    distance: float
 
 
 class WordBank:
@@ -46,7 +53,7 @@ class WordBank:
 
         self.db.put("wordbank", pd.DataFrame({"word": words, "embedding": embeddings}))
 
-    def query(self, word: str, k: int = 5) -> list[tuple[str, float]]:
+    def query(self, word: str, k: int = 5) -> list[Result]:
         res: pd.DataFrame = self.db.run(
             f"""
             ?[word, dist] :=
@@ -56,8 +63,21 @@ class WordBank:
             :limit {k}
             """
         )
-        out = [(word, dist) for word, dist in zip(res["word"], res["dist"])]
+        out = [Result(word, dist) for word, dist in zip(res["word"], res["dist"])]
         return out
+
+    def get_random(self) -> str:
+        res = self.db.run(
+            """
+            words[collect(word)] := *wordbank[word, embedding]
+            ?[choice] :=
+                words[wordlist],
+                choice = rand_choose(wordlist)
+            """
+        )
+        choice = res["choice"].iloc[0]
+
+        return choice
 
 
 def from_txt(txt_path: str, model: str) -> WordBank:
