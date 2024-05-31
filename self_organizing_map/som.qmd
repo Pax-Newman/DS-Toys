@@ -1,0 +1,272 @@
+---
+title: "Self Organizing Maps"
+format:
+    html:
+        df-print: paged
+jupyter: datascience
+---
+
+```{python}
+import pandas as pd
+import numpy as np
+import seaborn as sb
+import einops as ein
+import matplotlib.pyplot as plt
+```
+
+## Data
+
+Let's start by loading our data. We'll be using data about Iris flowers
+
+```{python}
+
+df = pd.read_csv("./Iris.csv", index_col='Id')
+
+df
+```
+
+Next we need to convert our flower data into vectors so we can use them in vector math later
+
+```{python}
+df["vector"] = df.apply(
+    lambda r: np.array(
+        r[["SepalLengthCm", "SepalWidthCm", "PetalLengthCm", "PetalWidthCm"]],
+        dtype=np.float32,
+    ),
+    axis=1,
+)
+
+df
+```
+
+Let's check out what our data looks like when plotted.
+
+```{python}
+#| label: fig-iris-sepal
+#| fig-cap: Irises by sepal measurements
+_ = sb.scatterplot(
+    df,
+    x='SepalLengthCm',
+    y='SepalWidthCm',
+    hue='Species',
+)
+```
+
+```{python}
+#| label: fig-iris-petal
+#| fig-cap: Irises by petal measurements
+_ = sb.scatterplot(
+    df,
+    x='PetalLengthCm',
+    y='PetalWidthCm',
+    hue='Species',
+)
+```
+
+## Building a Self Organizing Map Step by Step
+
+There are roughly 5 steps in fitting an SOM.
+
+  1. Sample a vector
+  2. Calculate deltas between the sample and each map node
+  3. Find the best matching unit (BMU)
+  4. Scale the deltas using a neighbor function
+  5. Apply the scaled deltas to the map nodes
+
+We'll go over each step and construct them one by one.
+Sampling a vector from some dataset is easy enough, so we'll skip to the fun stuff!
+
+### Initializing the weights
+
+Before we can do anything, we have to create the map itself.
+All this takes is initializing an `N x M x F` tensor, where F is the feature dimension of
+our sample vectors.
+
+```{python}
+
+def create_map(size: int, features: int, data: np.ndarray | None = None):
+    mean = 0
+    dev = 1.0
+
+    return np.random.normal(mean, dev, size=(size, size, features))
+
+
+map = create_map(10, 4)
+
+_ = sb.heatmap(
+    map.mean(axis=2),
+    annot=True,
+)
+```
+
+
+### Delta
+
+```{python}
+map = np.random.normal(size=(10, 10, 4))
+
+def map_delta(map: np.ndarray, sample: np.ndarray) -> np.ndarray:
+    delta = sample - ein.rearrange(map, "h w f -> (h w) f")
+    delta = ein.rearrange(delta, "(h w) f -> h w f", h=map.shape[0])
+
+    return delta
+
+_ = sb.heatmap(
+    map_delta(map, df['vector'].iloc[0]).mean(axis=2),
+    annot=True
+)
+
+```
+
+### Best Matching Unit
+
+First we need to be able to get the Best Matching Unit.
+This is the map node that most closely relates to a given sample vector.
+
+```{python}
+
+
+
+def get_bmu(map: np.ndarray, vector: np.ndarray):
+    map_view = ein.rearrange(map, "height width features -> features (height width)")
+
+    delta = map_view - vector[:, None]
+    nearest = np.sqrt(np.einsum("ij, ij -> j", delta, delta))
+
+    return np.unravel_index(nearest.argsort().argmin(), map.shape[:2])
+
+
+idx = get_bmu(map, df["vector"].iloc[0])
+
+idx
+```
+
+### Neighbor Function
+
+Next is the Neighbor Function. This is a function that determines how much
+a node should be changed based on its distance from the BMU.
+The goal is that when we're changing nodes to be more like the current training
+sample, we want nodes near to the BMU to have a much larger change than nodes
+far away.
+
+If we went ahead and made a Neighbor Function that took in the indices of a node
+and the indices of the BMU and found how much it should be scaled, it would work
+but it would be very slow.
+Instead, we can create all of the scales at once so we can apply changes to the
+entire map at once!
+
+```{python}
+
+def neighbor_scale(index: np.ndarray, map_shape: tuple[int, int]) -> np.ndarray:
+    i, j = np.indices(map_shape, sparse=True)
+
+    scale =  np.abs(i - index[0]) + np.abs(j - index[1])
+    scale = scale * 2
+    scale[idx] = 1
+    scale = 1 / scale
+
+    return scale
+
+```
+
+Let's try visualizing this with a heatmap to understand what's happening a little better.
+
+```{python}
+#| echo: false
+#| label: fig-neighbor-func
+#| fig-cap: Scaling values for nodes around the BMU
+sb.heatmap(neighbor_scale(idx, (10, 10)), annot=True)
+```
+
+Looking at the map we can see that the scale of the BMU index is 1, meaning we'll
+be applying the maximum amount of change at that node.
+As we move further away from the BMU the scales rapidly decrease, meaning the changes
+happening in the rest of the map will be increasingly small until they're very tiny.
+
+With this we can change the BMU the most, and each of its neighbors by lesser
+amounts based on how far they are from the BMU
+
+This marks off two critical pieces of fitting a self organizing map!
+
+### Fitting the Map
+
+Now that we can find the bmu and create a scaling array based off of it, next on
+our list is calculating the change we need to apply to our map to fit it to a vector.
+
+```{python}
+def fit_to_sample(map: np.ndarray, sample: np.ndarray, lr: float):
+    bmu_idx = get_bmu(map, sample)
+    scale = neighbor_scale(bmu_idx, map.shape[:2])
+
+    delta = map_delta(map, sample)
+
+    return delta * np.expand_dims(scale, -1) * lr
+```
+
+Let's see what one of these deltas look like. In order to visualize it a little
+easier, let's see what the mean absolute change is in the feature dimension for
+each map node.
+
+```{python}
+#| echo: false
+#| label: fig-mean-abs-delta
+#| fig-cap: Mean absolute change for each node
+_ = sb.heatmap(
+    np.abs(fit_to_sample(map, df["vector"].iloc[0], 1.0)).mean(axis=2),
+    annot=True,
+    vmax=3,
+    vmin=-3,
+)
+```
+
+### Reviewing a Fitting Step
+
+With each of the individual steps now figured out, it should be helpful to create
+a visualization of everything together now.
+
+```{python}
+#| code-fold: true
+
+fig, ax = plt.subplots(2, 2, figsize=(10.3, 9))
+
+scale = neighbor_scale(idx, (10, 10))
+mean_delta = fit_to_sample(map, df["vector"].iloc[0], 1.0).mean(axis=2)
+before = map.mean(axis=2)
+after = (map + fit_to_sample(map, df["vector"].iloc[0], 1.0)).mean(axis=2)
+
+max, min = 3, -3
+
+
+sb.heatmap(
+    scale,
+    ax=ax[0, 0],
+    vmin=0,
+    vmax=1,
+).set_title("Neighbor Scaling")
+
+sb.heatmap(
+    mean_delta,
+    ax=ax[0, 1],
+    vmin=min,
+    vmax=max,
+).set_title("Mean Scaled Change")
+
+sb.heatmap(
+    before,
+    ax=ax[1, 0],
+    vmin=min,
+    vmax=max,
+).set_title("Before Step")
+
+_ = sb.heatmap(
+    after,
+    ax=ax[1, 1],
+    vmin=min,
+    vmax=max,
+).set_title("After Step")
+```
+
+Now we can see a single step of the complete process in front of us!
+
+
+
