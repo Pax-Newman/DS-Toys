@@ -25,7 +25,8 @@ df = pd.read_csv("./Iris.csv", index_col='Id')
 df
 ```
 
-Next we need to convert our flower data into vectors so we can use them in vector math later
+Since we're going to be doing a lot of vector math later using these measurements, let's
+convert them into vectors right away.
 
 ```{python}
 df["vector"] = df.apply(
@@ -39,7 +40,7 @@ df["vector"] = df.apply(
 df
 ```
 
-Let's check out what our data looks like when plotted.
+Now that we have the data prepared, let's check out what our data looks like when plotted.
 
 ```{python}
 #| label: fig-iris-sepal
@@ -63,6 +64,8 @@ _ = sb.scatterplot(
 )
 ```
 
+From these plots it appears that the three different species create fairly distinctive clusters.
+
 ## Building a Self Organizing Map Step by Step
 
 There are roughly 5 steps in fitting an SOM.
@@ -79,19 +82,30 @@ Sampling a vector from some dataset is easy enough, so we'll skip to the fun stu
 ### Initializing the weights
 
 Before we can do anything, we have to create the map itself.
-All this takes is initializing an `N x M x F` tensor, where F is the feature dimension of
+All this takes is initializing an `H x W x F` tensor, where F is the feature dimension of
 our sample vectors.
+
+There's a variety of ways we could select the initial weight values.
+For now we'll initialize
+the weights by sampling from normal distributions based on the mean and standard deviation of
+each feature.
+This will ensure that our starting weights are at least somewhat similar to our data.
 
 ```{python}
 
-def create_map(size: int, features: int, data: np.ndarray | None = None):
-    mean = 0
-    dev = 1.0
+def create_map(height: int, width: int, features: int, data: np.ndarray | None = None):
+    if isinstance(data, np.ndarray):
+        mean = data.mean(axis=0)
+        dev = data.std(axis=0)
 
-    return np.random.normal(mean, dev, size=(size, size, features))
+    else:
+        mean = 0
+        dev = 1.0
+
+    return np.random.normal(mean, dev, size=(height, width, features))
 
 
-map = create_map(10, 4)
+map = create_map(10, 10, 4, np.stack(df['vector']))
 
 _ = sb.heatmap(
     map.mean(axis=2),
@@ -99,11 +113,31 @@ _ = sb.heatmap(
 )
 ```
 
+We have a map!
+With this done we can get started with the interesting stuff.
+
 
 ### Delta
 
+The first step of fitting is to find the difference between each map node and a sampled vector.
+To start off let's grab a random vector from our data.
+
 ```{python}
-map = np.random.normal(size=(10, 10, 4))
+sample = df["vector"].sample(1).iloc[0]
+
+_ = sb.heatmap(
+    sample[:, None],
+    annot=True,
+    yticklabels=["SepalLengthCm", "SepalWidthCm", "PetalLengthCm", "PetalWidthCm"],
+    xticklabels=[],
+)
+```
+
+Next, let's find the difference (or delta) between this sample vector and each map node.
+
+```{python}
+#| label: fig-map-delta
+#| fig-cap: Scaling values for nodes around the BMU
 
 def map_delta(map: np.ndarray, sample: np.ndarray) -> np.ndarray:
     delta = sample - ein.rearrange(map, "h w f -> (h w) f")
@@ -112,7 +146,7 @@ def map_delta(map: np.ndarray, sample: np.ndarray) -> np.ndarray:
     return delta
 
 _ = sb.heatmap(
-    map_delta(map, df['vector'].iloc[0]).mean(axis=2),
+    map_delta(map, sample).mean(axis=2),
     annot=True
 )
 
@@ -120,15 +154,27 @@ _ = sb.heatmap(
 
 ### Best Matching Unit
 
+Now just finding the delta is good, but we don't want to change the entire map at once.
+Instead we'll strategically apply the most of change to specific regions.
+To do so we'll need to find the map node that is the most similar to our sample.
+This node is what's known as the Best Matching Unit (BMU).
+
+----------
+ - Drafts:
+
+Instead we'll apply the most amount of change to the map node that is the most similar our sample.
 First we need to be able to get the Best Matching Unit.
 This is the map node that most closely relates to a given sample vector.
 
+----------
+
+There's a variety of ways to compare two vectors, but we'll be using Euclidean Distance.
+<!-- TODO: Add equation for euclidean distance here -->
+
 ```{python}
 
-
-
 def get_bmu(map: np.ndarray, vector: np.ndarray):
-    map_view = ein.rearrange(map, "height width features -> features (height width)")
+    map_view = ein.rearrange(map, "h w f -> f (h w)")
 
     delta = map_view - vector[:, None]
     nearest = np.sqrt(np.einsum("ij, ij -> j", delta, delta))
@@ -143,13 +189,16 @@ idx
 
 ### Neighbor Function
 
-Next is the Neighbor Function. This is a function that determines how much
-a node should be changed based on its distance from the BMU.
-The goal is that when we're changing nodes to be more like the current training
-sample, we want nodes near to the BMU to have a much larger change than nodes
-far away.
+Things are coming together! The last key ingredient is the Neighbor Function.
+This is a function that will provide a scaling coefficient for each map node
+based on its distance to the BMU.
+With this we can not only apply the most change to the BMU, but gradually decrease
+how much we're change the rest of the map as we move away from the BMU.
 
-If we went ahead and made a Neighbor Function that took in the indices of a node
+The goal is to have map nodes close to each other be similar to eachother in the same
+way that our sample is similar to other datapoints.
+
+Now then, if we went ahead and made a Neighbor Function that took in the indices of a node
 and the indices of the BMU and found how much it should be scaled, it would work
 but it would be very slow.
 Instead, we can create all of the scales at once so we can apply changes to the
@@ -175,7 +224,8 @@ Let's try visualizing this with a heatmap to understand what's happening a littl
 #| echo: false
 #| label: fig-neighbor-func
 #| fig-cap: Scaling values for nodes around the BMU
-sb.heatmap(neighbor_scale(idx, (10, 10)), annot=True)
+
+_ = sb.heatmap(neighbor_scale(idx, (10, 10)), annot=True)
 ```
 
 Looking at the map we can see that the scale of the BMU index is 1, meaning we'll
@@ -188,10 +238,9 @@ amounts based on how far they are from the BMU
 
 This marks off two critical pieces of fitting a self organizing map!
 
-### Fitting the Map
+### Reviewing a Fitting Step
 
-Now that we can find the bmu and create a scaling array based off of it, next on
-our list is calculating the change we need to apply to our map to fit it to a vector.
+Now that we have each ingredient for fitting, let's bring them together to create a fitting step.
 
 ```{python}
 def fit_to_sample(map: np.ndarray, sample: np.ndarray, lr: float):
@@ -203,28 +252,12 @@ def fit_to_sample(map: np.ndarray, sample: np.ndarray, lr: float):
     return delta * np.expand_dims(scale, -1) * lr
 ```
 
-Let's see what one of these deltas look like. In order to visualize it a little
-easier, let's see what the mean absolute change is in the feature dimension for
-each map node.
-
-```{python}
-#| echo: false
-#| label: fig-mean-abs-delta
-#| fig-cap: Mean absolute change for each node
-_ = sb.heatmap(
-    np.abs(fit_to_sample(map, df["vector"].iloc[0], 1.0)).mean(axis=2),
-    annot=True,
-    vmax=3,
-    vmin=-3,
-)
-```
-
-### Reviewing a Fitting Step
-
 With each of the individual steps now figured out, it should be helpful to create
 a visualization of everything together now.
 
 ```{python}
+#| label: fig-one-step
+#| fig-cap: Each part of a fitting step laid out
 #| code-fold: true
 
 fig, ax = plt.subplots(2, 2, figsize=(10.3, 9))
@@ -234,21 +267,27 @@ mean_delta = fit_to_sample(map, df["vector"].iloc[0], 1.0).mean(axis=2)
 before = map.mean(axis=2)
 after = (map + fit_to_sample(map, df["vector"].iloc[0], 1.0)).mean(axis=2)
 
-max, min = 3, -3
-
+max, min = 6, 0
+common = {
+    "xticklabels" : [],
+    "yticklabels" : [],
+    "square" : True,
+}
 
 sb.heatmap(
     scale,
     ax=ax[0, 0],
     vmin=0,
     vmax=1,
+    **common
 ).set_title("Neighbor Scaling")
 
 sb.heatmap(
     mean_delta,
     ax=ax[0, 1],
-    vmin=min,
-    vmax=max,
+    vmin=-2,
+    vmax=2,
+    **common
 ).set_title("Mean Scaled Change")
 
 sb.heatmap(
@@ -256,6 +295,7 @@ sb.heatmap(
     ax=ax[1, 0],
     vmin=min,
     vmax=max,
+    **common
 ).set_title("Before Step")
 
 _ = sb.heatmap(
@@ -263,6 +303,7 @@ _ = sb.heatmap(
     ax=ax[1, 1],
     vmin=min,
     vmax=max,
+    **common
 ).set_title("After Step")
 ```
 
