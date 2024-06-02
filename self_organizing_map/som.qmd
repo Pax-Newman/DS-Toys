@@ -3,6 +3,7 @@ title: "Self Organizing Maps"
 format:
     html:
         df-print: paged
+engine: jupyter
 jupyter: datascience
 ---
 
@@ -92,6 +93,8 @@ each feature.
 This will ensure that our starting weights are at least somewhat similar to our data.
 
 ```{python}
+#| label: fig-initial-map
+#| fig-cap: Average weight values of our newly initialized self organizing map
 
 def create_map(height: int, width: int, features: int, data: np.ndarray | None = None):
     if isinstance(data, np.ndarray):
@@ -110,6 +113,8 @@ map = create_map(10, 10, 4, np.stack(df['vector']))
 _ = sb.heatmap(
     map.mean(axis=2),
     annot=True,
+    yticklabels=[],
+    xticklabels=[],
 )
 ```
 
@@ -123,6 +128,8 @@ The first step of fitting is to find the difference between each map node and a 
 To start off let's grab a random vector from our data.
 
 ```{python}
+#| label: fig-sample-vector
+#| fig-cap: A random sample vector from our Iris data
 sample = df["vector"].sample(1).iloc[0]
 
 _ = sb.heatmap(
@@ -130,6 +137,8 @@ _ = sb.heatmap(
     annot=True,
     yticklabels=["SepalLengthCm", "SepalWidthCm", "PetalLengthCm", "PetalWidthCm"],
     xticklabels=[],
+    vmin=0,
+    vmax=np.stack(df["vector"]).max(),
 )
 ```
 
@@ -147,7 +156,9 @@ def map_delta(map: np.ndarray, sample: np.ndarray) -> np.ndarray:
 
 _ = sb.heatmap(
     map_delta(map, sample).mean(axis=2),
-    annot=True
+    annot=True,
+    yticklabels=[],
+    xticklabels=[],
 )
 
 ```
@@ -172,7 +183,6 @@ There's a variety of ways to compare two vectors, but we'll be using Euclidean D
 <!-- TODO: Add equation for euclidean distance here -->
 
 ```{python}
-
 def get_bmu(map: np.ndarray, vector: np.ndarray):
     map_view = ein.rearrange(map, "h w f -> f (h w)")
 
@@ -183,9 +193,9 @@ def get_bmu(map: np.ndarray, vector: np.ndarray):
 
 
 idx = get_bmu(map, df["vector"].iloc[0])
-
-idx
 ```
+
+Using this function we'll find that our sample's BMU is at the map index `{python} idx`.
 
 ### Neighbor Function
 
