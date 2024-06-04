@@ -1,4 +1,15 @@
+# Python
 Pipfile
 Pipfile.lock
 *.egg-info
 __pycache__
+
+# Quarto
+/_site/
+/_freeze/
+/.quarto/
+.jupyter_cache
+
+# Misc.
+.DS_Store
+
