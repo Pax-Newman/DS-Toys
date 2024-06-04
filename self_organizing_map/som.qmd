@@ -1,10 +1,9 @@
 ---
 title: "Self Organizing Maps"
-format:
-    html:
-        df-print: paged
-engine: jupyter
-jupyter: datascience
+author: "Pax Newman"
+date: "2024-06-03"
+categories: [unsupervised, feature-reduction, visualization]
+image: "image.jpg"
 ---
 
 ```{python}
@@ -21,7 +20,7 @@ Let's start by loading our data. We'll be using data about Iris flowers
 
 ```{python}
 
-df = pd.read_csv("./Iris.csv", index_col='Id')
+df = pd.read_csv("Iris.csv", index_col='Id')
 
 df
 ```
@@ -180,15 +179,6 @@ Instead we'll strategically apply the most of change to specific regions.
 To do so we'll need to find the map node that is the most similar to our sample.
 This node is what's known as the Best Matching Unit (BMU).
 
-----------
- - Drafts:
-
-Instead we'll apply the most amount of change to the map node that is the most similar our sample.
-First we need to be able to get the Best Matching Unit.
-This is the map node that most closely relates to a given sample vector.
-
-----------
-
 There's a variety of ways to compare two vectors, but we'll be using Euclidean Distance.
 <!-- TODO: Add equation for euclidean distance here -->
 
@@ -274,6 +264,9 @@ def fit_to_sample(map: np.ndarray, sample: np.ndarray, lr: float):
 With each of the individual steps now figured out, it should be helpful to create
 a visualization of everything together now.
 
+> Note: The delta applied to the map will also be scaled by a learning rate (lr), but for visualization we'll
+leave it at 1.0
+
 ```{python}
 #| label: fig-one-step
 #| fig-cap: Each part of a fitting step laid out
@@ -294,7 +287,6 @@ common = {
     "square" : True,
 }
 
-
 _ = sb.heatmap(
     sample[:, None],
     ax=ax[0, 0],
@@ -304,7 +296,7 @@ _ = sb.heatmap(
     square=True,
     vmin=0,
     vmax=np.stack(df["vector"]).max(),
-)
+).set_title("Sample Vector")
 
 sb.heatmap(
     mean_delta,
@@ -312,7 +304,7 @@ sb.heatmap(
     vmin=-3,
     vmax=3,
     **common
-).set_title("Mean Change")
+).set_title("Mean Delta")
 
 sb.heatmap(
     scale,
@@ -328,7 +320,7 @@ sb.heatmap(
     vmin=-3,
     vmax=3,
     **common
-).set_title("Mean Scaled Change")
+).set_title("Mean Scaled Delta")
 
 sb.heatmap(
     before,
@@ -348,6 +340,3 @@ _ = sb.heatmap(
 ```
 
 Now we can see a single step of the complete process in front of us!
-
-
-
