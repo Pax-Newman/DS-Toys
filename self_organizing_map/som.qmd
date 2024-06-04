@@ -1,9 +1,9 @@
 ---
 title: "Self Organizing Maps"
+description: "Exploring how self organizing maps are created"
 author: "Pax Newman"
 date: "2024-06-03"
 categories: [unsupervised, feature-reduction, visualization]
-image: "image.jpg"
 ---
 
 ```{python}
