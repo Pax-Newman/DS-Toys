@@ -19,9 +19,11 @@ import matplotlib.pyplot as plt
 Let's start by loading our data. We'll be using data about Iris flowers
 
 ```{python}
-
 df = pd.read_csv("Iris.csv", index_col='Id')
+```
 
+```{python}
+#| echo: false
 df
 ```
 
@@ -36,7 +38,10 @@ df["vector"] = df.apply(
     ),
     axis=1,
 )
+```
 
+```{python}
+#| echo: false
 df
 ```
 
@@ -161,7 +166,7 @@ def map_delta(map: np.ndarray, sample: np.ndarray) -> np.ndarray:
 
 ```{python}
 #| label: fig-map-delta
-#| fig-cap: Scaling values for nodes around the BMU
+#| fig-cap: Average delta between random sample and each map node
 #| code-fold: true
 
 _ = sb.heatmap(
@@ -186,7 +191,10 @@ There's a variety of ways to compare two vectors, but we'll be using Euclidean D
 def get_bmu(map: np.ndarray, vector: np.ndarray):
     map_view = ein.rearrange(map, "h w f -> f (h w)")
 
-    delta = map_view - vector[:, None]
+    if len(vector.shape) < 2:
+        vector = vector[:, None]
+
+    delta = map_view - vector
     nearest = np.sqrt(np.einsum("ij, ij -> j", delta, delta))
 
     return np.unravel_index(nearest.argsort().argmin(), map.shape[:2])
@@ -194,7 +202,21 @@ def get_bmu(map: np.ndarray, vector: np.ndarray):
 idx = get_bmu(map, df["vector"].iloc[0])
 ```
 
-Using this function we'll find that our sample's BMU is at the map index `{python} idx`.
+Let's take a look at how our sample compares to its BMU:
+
+```{python}
+#| code-fold: true
+#| label: fig-sample-bmu-comparison
+#| fig-cap: Our sampled vector and its closest map node side-by-side
+_ = sb.heatmap(
+    np.stack([sample, map[idx]], axis=1),
+    yticklabels=["SepalLengthCm", "SepalWidthCm", "PetalLengthCm", "PetalWidthCm"],
+    xticklabels=["Sample", f"BMU (Map Node {idx[0]}, {idx[1]})"],
+    vmin=0,
+    vmax=np.stack([sample, map[idx]], axis=1).max(),
+    annot=True,
+)
+```
 
 ### Neighbor Function
 
@@ -218,8 +240,8 @@ entire map at once!
 def neighbor_scale(index: np.ndarray, map_shape: tuple[int, int]) -> np.ndarray:
     i, j = np.indices(map_shape, sparse=True)
 
-    scale =  np.abs(i - index[0]) + np.abs(j - index[1])
-    scale = scale * 2
+    scale = np.power(2, np.abs(i - index[0]) + np.abs(j - index[1]))
+    # scale = scale * 1
     scale[index] = 1
     scale = 1 / scale
 
@@ -340,3 +362,62 @@ _ = sb.heatmap(
 ```
 
 Now we can see a single step of the complete process in front of us!
+
+## Bringing it All Together
+
+Now that we've seen what a single fitting step looks like, we need to bring it all together
+in a training loop so we can apply it to the rest of our dataset.
+
+```{python}
+
+def fit_epoch(
+    map,
+    data,
+    lr,
+):
+    new_map = np.copy(map)
+    for x in data:
+        new_map += fit_to_sample(new_map, sample, lr)
+
+    return new_map
+
+fitted = fit_epoch(map, df["vector"], 0.09)
+
+
+fig, ax = plt.subplots(2, 2)
+
+
+_ = sb.heatmap(
+    fitted[:, :, 0],
+    vmin=0,
+    xticklabels=[],
+    yticklabels=[],
+    ax=ax[0, 0],
+).set_title("Sepal Length Cm")
+
+
+_ = sb.heatmap(
+    fitted[:, :, 1],
+    vmin=0,
+    xticklabels=[],
+    yticklabels=[],
+    ax=ax[0, 1],
+).set_title("Sepal Width Cm")
+
+_ = sb.heatmap(
+    fitted[:, :, 2],
+    vmin=0,
+    xticklabels=[],
+    yticklabels=[],
+    ax=ax[1, 0],
+).set_title("Petal Length Cm")
+
+_ = sb.heatmap(
+    fitted[:, :, 3],
+    vmin=0,
+    xticklabels=[],
+    yticklabels=[],
+    ax=ax[1, 1],
+).set_title("Petal Width Cm")
+```
+
