@@ -12,6 +12,9 @@ import numpy as np
 import seaborn as sb
 import einops as ein
 import matplotlib.pyplot as plt
+
+from matplotlib.animation import FuncAnimation
+from IPython.display import HTML
 ```
 
 ## Data
@@ -377,15 +380,15 @@ def fit_epoch(
 ):
     new_map = np.copy(map)
     for x in data:
-        new_map += fit_to_sample(new_map, sample, lr)
+        new_map += fit_to_sample(new_map, x, lr)
 
     return new_map
+```
 
-fitted = fit_epoch(map, df["vector"], 0.09)
-
+```{python}
+fitted = fit_epoch(map, df["vector"], 0.1)
 
 fig, ax = plt.subplots(2, 2)
-
 
 _ = sb.heatmap(
     fitted[:, :, 0],
