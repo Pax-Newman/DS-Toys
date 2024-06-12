@@ -385,8 +385,109 @@ def fit_epoch(
     return new_map
 ```
 
+That's pretty much it! We've done so much of the work previously that a training loop for a single epoch is this simple.
+Now if we wanted to try things like sampling data differently, training for multiple epochs, dynamically adjusting the learning rate,
+it'd all be pretty easy to accomplish by modifying this simple loop and utilizing the tools we've built.
+
 ```{python}
-fitted = fit_epoch(map, df["vector"], 0.1)
+#| label: fig-training-animation
+#| fig-cap: Full animation of one training epoch
+#| code-fold: true
+
+grid_kws = {'wspace': 0.2}
+# fig, (ax, cbar_ax) = plt.subplots(1, 2, gridspec_kw = grid_kws, figsize = (5, 4))
+
+fig, ax = plt.subplots(4, 2, gridspec_kw=grid_kws, figsize=(10.3, 9))
+
+anim_map = map.copy()
+anim_data = df['vector'].tolist()
+anim_data = anim_data
+anim_lr = 0.3
+
+def animate(i):
+    global anim_map
+
+    sample = anim_data[i]
+
+    bmu_idx = get_bmu(anim_map, sample)
+    mean_delta = map_delta(anim_map, sample).mean(axis=2)
+    scale = neighbor_scale(bmu_idx, (10, 10))
+    mean_scaled_delta = fit_to_sample(anim_map, sample, anim_lr).mean(axis=2)
+    before = anim_map.mean(axis=2)
+    after = anim_map + fit_to_sample(anim_map, sample, anim_lr)
+
+    anim_map += fit_to_sample(anim_map, sample, anim_lr)
+
+    common = {
+        "xticklabels" : [],
+        "yticklabels" : [],
+        "square" : True,
+        "cbar": False,
+    }
+
+    sb.heatmap(
+        np.stack([sample, anim_map[bmu_idx]], axis=1),
+        ax=ax[0, 0],
+        **common,
+    ).set_title("Sample Vector")
+
+    sb.heatmap(
+        mean_delta,
+        ax=ax[0, 1],
+        vmin=-3,
+        vmax=3,
+        **common
+    ).set_title("Mean Delta")
+
+    sb.heatmap(
+        scale,
+        ax=ax[1, 0],
+        vmin=0,
+        vmax=1,
+        **common,
+    ).set_title("Neighbor Scaling")
+
+    sb.heatmap(
+        mean_scaled_delta,
+        ax=ax[1, 1],
+        vmin=-3,
+        vmax=3,
+        **common
+    ).set_title("Mean Scaled Delta")
+
+    sb.heatmap(
+        after[:, :, 0],
+        ax=ax[2, 0],
+        **common
+    ).set_title("Sepal Length")
+
+    sb.heatmap(
+        after[:, :, 1],
+        ax=ax[2, 1],
+        **common
+    ).set_title("Sepal Width")
+
+    sb.heatmap(
+        after[:, :, 2],
+        ax=ax[3, 0],
+        **common
+    ).set_title("Petal Length")
+
+    sb.heatmap(
+        after[:, :, 3],
+        ax=ax[3, 1],
+        **common
+    ).set_title("Petal Width")
+
+ani = FuncAnimation(fig=fig, func=animate, frames=len(anim_data), interval=1)
+
+plt.close()
+HTML(ani.to_jshtml())
+```
+
+
+```{python}
+fitted = fit_epoch(map, df["vector"], 0.05)
 
 fig, ax = plt.subplots(2, 2)
 
