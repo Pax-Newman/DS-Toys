@@ -388,6 +388,7 @@ def fit_epoch(
 That's pretty much it! We've done so much of the work previously that a training loop for a single epoch is this simple.
 Now if we wanted to try things like sampling data differently, training for multiple epochs, dynamically adjusting the learning rate,
 it'd all be pretty easy to accomplish by modifying this simple loop and utilizing the tools we've built.
+For now though, let's see what a full epoch of training looks like.
 
 ```{python}
 #| label: fig-training-animation
@@ -397,10 +398,11 @@ it'd all be pretty easy to accomplish by modifying this simple loop and utilizin
 grid_kws = {'wspace': 0.2}
 # fig, (ax, cbar_ax) = plt.subplots(1, 2, gridspec_kw = grid_kws, figsize = (5, 4))
 
-fig, ax = plt.subplots(4, 2, gridspec_kw=grid_kws, figsize=(10.3, 9))
+fig, ax = plt.subplots(4, 2, figsize=(8, 8))
+fig.tight_layout()
 
 anim_map = map.copy()
-anim_data = df['vector'].tolist()
+anim_data = df['vector'].sample(frac=1).tolist()
 anim_data = anim_data
 anim_lr = 0.3
 
@@ -410,9 +412,9 @@ def animate(i):
     sample = anim_data[i]
 
     bmu_idx = get_bmu(anim_map, sample)
-    mean_delta = map_delta(anim_map, sample).mean(axis=2)
+    mean_delta = np.abs(map_delta(anim_map, sample)).mean(axis=2)
     scale = neighbor_scale(bmu_idx, (10, 10))
-    mean_scaled_delta = fit_to_sample(anim_map, sample, anim_lr).mean(axis=2)
+    mean_scaled_delta = np.abs(fit_to_sample(anim_map, sample, anim_lr).mean(axis=2))
     before = anim_map.mean(axis=2)
     after = anim_map + fit_to_sample(anim_map, sample, anim_lr)
 
@@ -429,15 +431,15 @@ def animate(i):
         np.stack([sample, anim_map[bmu_idx]], axis=1),
         ax=ax[0, 0],
         **common,
-    ).set_title("Sample Vector")
+    ).set_title("Sample & BMU")
 
     sb.heatmap(
         mean_delta,
         ax=ax[0, 1],
-        vmin=-3,
+        vmin=0,
         vmax=3,
         **common
-    ).set_title("Mean Delta")
+    ).set_title("Mean Absolute Delta")
 
     sb.heatmap(
         scale,
@@ -450,10 +452,10 @@ def animate(i):
     sb.heatmap(
         mean_scaled_delta,
         ax=ax[1, 1],
-        vmin=-3,
-        vmax=3,
+        vmin=0,
+        vmax=1,
         **common
-    ).set_title("Mean Scaled Delta")
+    ).set_title("Scaled Delta")
 
     sb.heatmap(
         after[:, :, 0],
@@ -485,43 +487,28 @@ plt.close()
 HTML(ani.to_jshtml())
 ```
 
+Now let's observe what our data looks like when we use the map to reduce the features.
+Let's upgrade our `get_bmu` function so it can find the BMU for many samples at once.
 
 ```{python}
-fitted = fit_epoch(map, df["vector"], 0.05)
 
-fig, ax = plt.subplots(2, 2)
+def get_bmu(map, vector):
 
-_ = sb.heatmap(
-    fitted[:, :, 0],
-    vmin=0,
-    xticklabels=[],
-    yticklabels=[],
-    ax=ax[0, 0],
-).set_title("Sepal Length Cm")
+    if len(vector.shape) < 2:
+        vector = vector[:, None]
 
+    map_view = ein.rearrange(map, "h w f -> f (h w)")
 
-_ = sb.heatmap(
-    fitted[:, :, 1],
-    vmin=0,
-    xticklabels=[],
-    yticklabels=[],
-    ax=ax[0, 1],
-).set_title("Sepal Width Cm")
+    delta = map_view[:, None, :] - vector[:, :, None]
 
-_ = sb.heatmap(
-    fitted[:, :, 2],
-    vmin=0,
-    xticklabels=[],
-    yticklabels=[],
-    ax=ax[1, 0],
-).set_title("Petal Length Cm")
+    nearest = np.sqrt(np.einsum("i...j, i...j -> ...j", delta, delta))
 
-_ = sb.heatmap(
-    fitted[:, :, 3],
-    vmin=0,
-    xticklabels=[],
-    yticklabels=[],
-    ax=ax[1, 1],
-).set_title("Petal Width Cm")
+    bmu = np.stack(
+        np.unravel_index(nearest.argsort(axis=1).argmin(axis=1), fitted.shape[:2])
+    ).T
+
+    if bmu.shape[0] == 1:
+        return bmu[0]
+    else:
+        return bmu
 ```
-
