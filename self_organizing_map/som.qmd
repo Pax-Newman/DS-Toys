@@ -415,7 +415,6 @@ def animate(i):
     mean_delta = np.abs(map_delta(anim_map, sample)).mean(axis=2)
     scale = neighbor_scale(bmu_idx, (10, 10))
     mean_scaled_delta = np.abs(fit_to_sample(anim_map, sample, anim_lr).mean(axis=2))
-    before = anim_map.mean(axis=2)
     after = anim_map + fit_to_sample(anim_map, sample, anim_lr)
 
     anim_map += fit_to_sample(anim_map, sample, anim_lr)
@@ -512,3 +511,30 @@ def get_bmu(map, vector):
     else:
         return bmu
 ```
+
+Now let's try using our newly fitted map to perform feature reduction on our data
+
+```{python}
+#| label: fig-reduced-data
+#| fig-cap: Reduction of Iris data
+#| code-fold: true
+
+fitted = anim_map.copy()
+
+indices = get_bmu(fitted, np.stack(df["vector"], axis=1))
+
+_ = sb.scatterplot(
+    data=df.assign(
+        x=indices[:, 0],
+        y=indices[:, 1],
+    ),
+    x="x",
+    y="y",
+    hue='Species',
+    style='Species'
+)
+```
+
+We should see that the reduced data appears roughly similar to the distributions we saw when we
+looked at the petal and sepal measurements seperately.
+
