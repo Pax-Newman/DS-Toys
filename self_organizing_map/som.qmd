@@ -1,12 +1,14 @@
 ---
 title: "Self Organizing Maps"
-description: "Exploring how self organizing maps are created"
+description: "Learn how to create self organizing maps"
 author: "Pax Newman"
 date: "2024-06-03"
 categories: [unsupervised, feature-reduction, visualization]
 ---
 
 ```{python}
+#| code-fold: true
+
 import pandas as pd
 import numpy as np
 import seaborn as sb
@@ -16,6 +18,21 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from IPython.display import HTML
 ```
+
+## Goals
+
+In this article we'll be covering Self Organizing Maps.
+
+You'll learn about:
+
+ - What self organizing maps are
+ - How to create and train self organizing maps
+ - Using self organizing maps to perform feature reduction
+
+## Introduction
+
+Self organizing maps are a parametric method of dimensionality or feature reduction
+of continuous features.
 
 ## Data
 
@@ -105,7 +122,7 @@ This will ensure that our starting weights are at least somewhat similar to our 
 def create_map(height: int, width: int, features: int, data: np.ndarray | None = None):
     if isinstance(data, np.ndarray):
         mean = data.mean(axis=0)
-        dev = data.std(axis=0)
+        dev = data.std(axis=0) * 3
 
     else:
         mean = 0
@@ -403,7 +420,7 @@ fig.tight_layout()
 
 anim_map = map.copy()
 anim_data = df['vector'].sample(frac=1).tolist()
-anim_data = anim_data
+anim_data = anim_data * 3
 anim_lr = 0.3
 
 def animate(i):
