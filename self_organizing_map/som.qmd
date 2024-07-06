@@ -33,10 +33,16 @@ You'll learn about:
 
 Self organizing maps are a parametric method of dimensionality or feature reduction
 of continuous features.
+They can be used to organize high dimensional data into just two dimensions. Well, really we *could* use them to map our data from any dimensionality into any other dimensionality, but they're generally most helpful for reducing many dimensions into just one, two, or three dimensions for visualizations.
 
 ## Data
 
-Let's start by loading our data. We'll be using data about Iris flowers
+Before doing anything, let's prepare some data.
+We'll be using a small dataset about Iris flowers.
+It contains 3 classes of Irises, and each datapoint contains the measurements of the length and width of a flower's sepal and petals.
+
+
+First things first, let's start by loading our data and taking a look
 
 ```{python}
 df = pd.read_csv("Iris.csv", index_col='Id')
@@ -47,8 +53,8 @@ df = pd.read_csv("Iris.csv", index_col='Id')
 df
 ```
 
-Since we're going to be doing a lot of vector math later using these measurements, let's
-convert them into vectors right away.
+Since we're going to be doing a lot of vector math later using these measurements,
+let's convert them into vectors right away.
 
 ```{python}
 df["vector"] = df.apply(
@@ -65,7 +71,8 @@ df["vector"] = df.apply(
 df
 ```
 
-Now that we have the data prepared, let's check out what our data looks like when plotted.
+Now that we have the data prepared, we can start with some of the fun stuff.
+Let's check out what our data looks like when plotted.
 
 ```{python}
 #| label: fig-iris-sepal
@@ -93,9 +100,17 @@ _ = sb.scatterplot(
 
 From these plots it appears that each of the three different species have a fairly distinct cluster.
 
+You'll also notice, since we had 4 features we wanted to investigate,
+we had to create two distinct plots to visualize all of our data.
+This is something we can alleviate using Self Organizing Maps!
+We'll be using them to organize our 4 dimensional data into just 2 dimensions.
+
 ## Building a Self Organizing Map Step by Step
 
-There are roughly 5 steps in fitting an SOM.
+Alright, we've covered some information about SOMs and the data is ready.
+Now we'll start building and fitting the actual map.
+
+There are roughly 5 steps in fitting an SOM:
 
   1. Sample a vector
   2. Calculate deltas between the sample and each map node
