@@ -31,8 +31,7 @@ You'll learn about:
 
 ## Introduction
 
-Self organizing maps are a parametric method of dimensionality or feature reduction
-of continuous features.
+Self organizing maps (SOMs) are a parametric method of feature reduction.
 They can be used to organize high dimensional data into just two dimensions.
 Well, really we *could* use them to map our data from any dimensionality into any other dimensionality,
 but they're generally most helpful for reducing many dimensions into just one, two,
@@ -109,43 +108,44 @@ have some overlap with eachother.
 
 Now to the main point: you'll notice that, since we had 4 features we wanted to investigate, we had to
 create two distinct plots to visualize all of our data.
-This is exactly what self organizing maps can help us with!
-Rather than having to make many plots to visualize the data, we can fit a map that can reduce our 4
+This is exactly what SOMs can help us with!
+Rather than having to make many plots to visualize the data, we can fit a SOM that can reduce our 4
 dimensional data to just 2 dimensions. Perfect for plotting!
 
 ## Building a Self Organizing Map Step by Step
 
 Alright, we've covered some information about SOMs and the data is ready.
-Now we'll start building and fitting the actual map.
+Now it's time to get into the meat of things.
+
+First off is creating and initializing the SOM, then we'll be using our data to fit the weights.
 
 There are roughly 5 steps in fitting an SOM:
 
   1. Sample a vector
-  2. Calculate deltas between the sample and each map node
+  2. Calculate deltas between the sample and each SOM node
   3. Find the best matching unit (BMU)
   4. Scale the deltas using a neighbor function
-  5. Apply the scaled deltas to the map nodes
+  5. Apply the scaled deltas to the SOM nodes
 
-We'll go over each step and construct them one by one.
-Sampling a vector from some dataset is easy enough, so we'll skip to the fun stuff!
+We'll be going over each step one by one, so let's get started.
 
 ### Initializing the weights
 
-Before we can do anything, we have to create the map itself.
-All this takes is initializing an `H x W x F` tensor, where F is the feature dimension of
-our sample vectors.
-
-There's a variety of ways we could select the initial weight values.
-For now we'll initialize
-the weights by sampling from normal distributions based on the mean and standard deviation of
-each feature.
+Before we can do anything, we have to create the SOM itself.
+All this takes is initializing an `Height x Width x Feature` weight matrix.
+There's a variety of interesting ways we could select the initial weight values.
+For now however, we'll initialize the weights by sampling from several normal distributions based on the mean and
+standard deviation of each feature.
 This will ensure that our starting weights are at least somewhat similar to our data.
+To ensure that the initial weights aren't too similar to eachother, we'll scale the standard
+deviations to increase weight variety.
 
 ```{python}
-def create_map(height: int, width: int, features: int, data: np.ndarray | None = None):
+def create_map(height: int, width: int, features: int, data: np.ndarray | None = None, scale: int = 1):
     if isinstance(data, np.ndarray):
+        # Take the mean and std. dev. for each feature
         mean = data.mean(axis=0)
-        dev = data.std(axis=0) * 3
+        dev = data.std(axis=0) * scale
 
     else:
         mean = 0
@@ -154,12 +154,12 @@ def create_map(height: int, width: int, features: int, data: np.ndarray | None =
     return np.random.normal(mean, dev, size=(height, width, features))
 
 
-map = create_map(10, 10, 4, np.stack(df['vector']))
+map = create_map(10, 10, 4, data=np.stack(df['vector']), scale=3)
 ```
 
 ```{python}
 #| label: fig-initial-map
-#| fig-cap: Average weight values of our newly initialized self organizing map
+#| fig-cap: Average weight values of our newly initialized SOM
 #| code-fold: true
 
 _ = sb.heatmap(
@@ -170,13 +170,13 @@ _ = sb.heatmap(
 )
 ```
 
-We have a map!
-With this done we can get started with the interesting stuff.
+We have a SOM!
+With this done we can get started with fitting its weights to our data.
 
 
 ### Delta
 
-The first step of fitting is to find the difference between each map node and a sampled vector.
+The first step of fitting a SOM is to find the difference between each SOM node and a sampled vector.
 To start off let's grab a random vector from our data.
 
 ```{python}
@@ -197,7 +197,7 @@ _ = sb.heatmap(
 )
 ```
 
-Next, let's find the difference (or delta) between this sample vector and each map node.
+Next, let's find the difference (or delta) between this sample vector and each SOM node.
 
 ```{python}
 def map_delta(map: np.ndarray, sample: np.ndarray) -> np.ndarray:
@@ -222,9 +222,9 @@ _ = sb.heatmap(
 
 ### Best Matching Unit
 
-Now just finding the delta is good, but we don't want to change the entire map at once.
+Now just finding the delta is good, but we don't want to change the entire SOM at once.
 Instead we'll strategically apply the most of change to specific regions.
-To do so we'll need to find the map node that is the most similar to our sample.
+To do so we'll need to find the SOM node that is the most similar to our sample.
 This node is what's known as the Best Matching Unit (BMU).
 
 There's a variety of ways to compare two vectors, but we'll be using Euclidean Distance.
@@ -264,19 +264,19 @@ _ = sb.heatmap(
 ### Neighbor Function
 
 Things are coming together! The last key ingredient is the Neighbor Function.
-This is a function that will provide a scaling coefficient for each map node
+This is a function that will provide a scaling coefficient for each SOM node
 based on its distance to the BMU.
 With this we can not only apply the most change to the BMU, but gradually decrease
-how much we're change the rest of the map as we move away from the BMU.
+how much we're change the rest of the SOM as we move away from the BMU.
 
-The goal is to have map nodes close to each other be similar to eachother in the same
+The goal is to have SOM nodes close to each other be similar to eachother in the same
 way that our sample is similar to other datapoints.
 
 Now then, if we went ahead and made a Neighbor Function that took in the indices of a node
 and the indices of the BMU and found how much it should be scaled, it would work
 but it would be very slow.
 Instead, we can create all of the scales at once so we can apply changes to the
-entire map at once!
+entire SOM at once!
 
 ```{python}
 
@@ -302,15 +302,15 @@ Let's try visualizing this with a heatmap to understand what's happening a littl
 _ = sb.heatmap(neighbor_scale(idx, (10, 10)), annot=True)
 ```
 
-Looking at the map we can see that the scale of the BMU index is 1, meaning we'll
+Looking at the SOM we can see that the scale of the BMU index is 1, meaning we'll
 be applying the maximum amount of change at that node.
 As we move further away from the BMU the scales rapidly decrease, meaning the changes
-happening in the rest of the map will be increasingly small until they're very tiny.
+happening in the rest of the SOM will be increasingly small until they're very tiny.
 
 With this we can change the BMU the most, and each of its neighbors by lesser
 amounts based on how far they are from the BMU
 
-This marks off two critical pieces of fitting a self organizing map!
+This marks off two critical pieces of fitting a SOM!
 
 ### Reviewing a Fitting Step
 
@@ -526,7 +526,7 @@ plt.close()
 HTML(ani.to_jshtml())
 ```
 
-Now let's observe what our data looks like when we use the map to reduce the features.
+Now let's observe what our data looks like when we use the SOM to reduce the features.
 Let's upgrade our `get_bmu` function so it can find the BMU for many samples at once.
 
 ```{python}
@@ -552,7 +552,7 @@ def get_bmu(map, vector):
         return bmu
 ```
 
-Now let's try using our newly fitted map to perform feature reduction on our data
+Now let's try using our newly fitted SOM to perform feature reduction on our data
 
 ```{python}
 #| label: fig-reduced-data
